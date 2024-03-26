@@ -2,6 +2,11 @@ A tool to annotate temporal segments in untrimmed videos with activity classes. 
 
 ![screenshot](docs/screenshot.jpg)
 
+## Requirements
+* OpenCV
+* PyQt5
+* Matplotlib
+
 ## Usage
 ```
 python annotate_segments.py [-h] [-r ROOT] [-t TRIAL_NUM] [-f {npy,json}]

@@ -14,7 +14,6 @@ import json
 import cv2
 import pdb
 import sys
-import matplotlib.pyplot as plt
 import matplotlib.colors
 import argparse
 
