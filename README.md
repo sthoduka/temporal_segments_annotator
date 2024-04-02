@@ -44,7 +44,8 @@ s           save
 ```
 
 ## Similar tools
-Both of these tools can be used to label video segments, but can do other labelling tasks as well:
+The following tools can also be used to label video segments, but have other functionalities in addition:
 
 * [VGG Image Annotator (VIA)](https://www.robots.ox.ac.uk/~vgg/software/via/)
 * [Behavioral Observation Research Interactive Software (BORIS)](http://www.boris.unito.it/)
+* [DLC2Action](https://github.com/amathislab/dlc2action_annotation)
