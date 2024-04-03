@@ -9,14 +9,18 @@ A tool to annotate temporal segments in untrimmed videos with activity classes. 
 
 ## Usage
 ```
-python annotate_segments.py [-h] [-r ROOT] [-t TRIAL_NUM] [-f {npy,json}]
+python annotate_segments.py [-h] [-r ROOT] [-t TRIAL_NUM] [-a {npy,json}] [-i {video,image_folder}] [-f INPUT_FILE_TYPE]
 ```
 
 -r (required): path containing the videos to be annotated
 
 -t (optional): video number to skip to
 
--f (optional, default=npy): annotations can be saved as a json dictionary or a Numpy array. The numpy array consists of a class ID per frame. The json dictionary consists of the start and end of each segment and the class name.
+-a (optional, default=npy): annotations can be saved as a json dictionary or a Numpy array. The numpy array consists of a class ID per frame. The json dictionary consists of the start and end of each segment and the class name.
+
+-i (optional, default=video): the input can be in the form of videos or folders containing sequences of images
+
+-f (optional, default=mp4): input file type / extension
 
 Class labels can be defined in [config.json](config.json).
 

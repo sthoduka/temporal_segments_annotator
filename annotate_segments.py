@@ -21,8 +21,13 @@ class Annotator(QWidget):
     def __init__(self, args):
         super().__init__()
         self.data_root = args.root
-        self.annotation_file_format = args.file_format
-        self.trials = sorted(glob.glob(self.data_root + '/*.mp4'))
+        self.annotation_file_format = args.annotation_file_format
+        self.input_format = args.input_format
+        self.input_file_type = args.input_file_type
+        if self.input_format == 'video':
+            self.trials = sorted(glob.glob(self.data_root + '/*.' + self.input_file_type))
+        elif self.input_format == 'image_folder':
+            self.trials = sorted(glob.glob(self.data_root + '/*'))
         self.trial_num = args.trial_num if args.trial_num is not None else 0
         with open('config.json', 'r') as fp:
             self.segment_labels = json.load(fp)["segments"]
@@ -185,7 +190,10 @@ class Annotator(QWidget):
         diag.exec_()
 
     def _handle_save(self):
-        path = self.trials[self.trial_num][:-3] + self.annotation_file_format
+        if self.input_format == 'video':
+            path = self.trials[self.trial_num][:-3] + self.annotation_file_format
+        elif self.input_format == 'image_folder':
+            path = self.trials[self.trial_num] + '.' + self.annotation_file_format
         # make sure segmentation is contiguous
         prev_end = -1
         for seg in self.current_segmentation:
@@ -286,29 +294,44 @@ class Annotator(QWidget):
         self.setLayout(self.layout)
 
     def init_images(self):
-        video_path = self.trials[self.trial_num]
-        cap = cv2.VideoCapture(video_path)
-        self.imgs = []
-        frame_num = 0
-        prev_frame = None
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            self.img_width = frame.shape[1]
-            img = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
-            self.imgs.append(img)
-            frame_num += 1
-        cap.release()
+        if self.input_format == 'video':
+            video_path = self.trials[self.trial_num]
+            cap = cv2.VideoCapture(video_path)
+            self.imgs = []
+            frame_num = 0
+            prev_frame = None
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                self.img_width = frame.shape[1]
+                img = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
+                self.imgs.append(img)
+                frame_num += 1
+            cap.release()
+        elif self.input_format == 'image_folder':
+            image_paths = sorted(glob.glob(self.trials[self.trial_num] + '/*.' + self.input_file_type))
+            self.imgs = []
+            frame_num = 0
+            prev_frame = None
+            for img_path in image_paths:
+                frame = cv2.imread(img_path, cv2.IMREAD_COLOR)
+                self.img_width = frame.shape[1]
+                img = QtGui.QImage(frame.data, frame.shape[1], frame.shape[0], QtGui.QImage.Format_RGB888).rgbSwapped()
+                self.imgs.append(img)
+                frame_num += 1
 
         self.current_img_id = 0
         self.segment_start_id = 0
         self.first_img_lbl.setPixmap(QtGui.QPixmap.fromImage(self.imgs[self.current_img_id]))
 
         self.current_segmentation = []
-        if os.path.exists(os.path.join(self.trials[self.trial_num][:-3] + self.annotation_file_format)):
+        trial_name = self.trials[self.trial_num]
+        if self.input_format == 'video':
+            trial_name = trial_name[:-4]
+        if os.path.exists(os.path.join(trial_name + '.' + self.annotation_file_format)):
             if self.annotation_file_format == 'npy':
-                segmentation = np.load(os.path.join(self.trials[self.trial_num][:-3] + 'npy'))
+                segmentation = np.load(os.path.join(trial_name + '.npy'))
                 current_seg = segmentation[0]
                 start = 0
                 for frame_id, ss in enumerate(segmentation):
@@ -327,7 +350,7 @@ class Annotator(QWidget):
                 seg["cls"] = self.segment_labels[current_seg]
                 self.current_segmentation.append(seg)
             elif self.annotation_file_format == 'json':
-                with open(os.path.join(self.trials[self.trial_num][:-3] + 'json'), 'r') as fp:
+                with open(os.path.join(trial_name + '.json'), 'r') as fp:
                     self.current_segmentation = json.load(fp)
 
         self.update_segmentation_img()
@@ -384,7 +407,10 @@ class Annotator(QWidget):
         prev = -1
         while True:
             self.trial_num = self.get_next_trial()
-            if not os.path.exists(os.path.join(self.trials[self.trial_num][:-3] + 'npy')):
+            trial_name = self.trials[self.trial_num]
+            if self.input_format == 'video':
+                trial_name = trial_name[:-4]
+            if not os.path.exists(os.path.join(trial_name + '.npy')):
                 break
             if self.trial_num == prev:
                 break
@@ -410,7 +436,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-r', '--root')
     parser.add_argument('-t', '--trial_num')
-    parser.add_argument('-f', '--file_format', default='npy', choices=['npy', 'json'])
+    parser.add_argument('-a', '--annotation_file_format', default='npy', choices=['npy', 'json'])
+    parser.add_argument('-i', '--input_format', default='video', choices=['video', 'image_folder'])
+    parser.add_argument('-f', '--input_file_type', default='mp4')
     args = parser.parse_args()
     app = QApplication(sys.argv)
     ex = Annotator(args)
