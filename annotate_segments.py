@@ -20,7 +20,8 @@ import argparse
 class Annotator(QWidget):
     def __init__(self, args):
         super().__init__()
-        self.data_root = args.root
+        self.data_root = args.video_root
+        self.annotation_root = args.annotation_root
         self.annotation_file_format = args.annotation_file_format
         self.input_format = args.input_format
         self.input_file_type = args.input_file_type
@@ -28,6 +29,9 @@ class Annotator(QWidget):
             self.trials = sorted(glob.glob(self.data_root + '/*.' + self.input_file_type))
         elif self.input_format == 'image_folder':
             self.trials = sorted(glob.glob(self.data_root + '/*'))
+        if len(self.trials) == 0:
+            print('No trials found in %s' % self.data_root)
+            exit(0)
         self.trial_num = args.trial_num if args.trial_num is not None else 0
         with open('config.json', 'r') as fp:
             self.segment_labels = json.load(fp)["segments"]
@@ -191,9 +195,11 @@ class Annotator(QWidget):
 
     def _handle_save(self):
         if self.input_format == 'video':
-            path = self.trials[self.trial_num][:-3] + self.annotation_file_format
+            trial_name = os.path.basename(self.trials[self.trial_num]).split('.')[0]
+            path = os.path.join(self.annotation_root,  trial_name + '.' + self.annotation_file_format)
         elif self.input_format == 'image_folder':
-            path = self.trials[self.trial_num] + '.' + self.annotation_file_format
+            trial_name = os.path.basename(self.trials[self.trial_num])
+            path = os.path.join(self.annotation_root, trial_name + '.' + self.annotation_file_format)
         # make sure segmentation is contiguous
         prev_end = -1
         for seg in self.current_segmentation:
@@ -326,12 +332,12 @@ class Annotator(QWidget):
         self.first_img_lbl.setPixmap(QtGui.QPixmap.fromImage(self.imgs[self.current_img_id]))
 
         self.current_segmentation = []
-        trial_name = self.trials[self.trial_num]
+        trial_name = os.path.basename(self.trials[self.trial_num])
         if self.input_format == 'video':
-            trial_name = trial_name[:-4]
-        if os.path.exists(os.path.join(trial_name + '.' + self.annotation_file_format)):
+            trial_name = trial_name.split('.')[0]
+        if os.path.exists(os.path.join(self.annotation_root, trial_name + '.' + self.annotation_file_format)):
             if self.annotation_file_format == 'npy':
-                segmentation = np.load(os.path.join(trial_name + '.npy'))
+                segmentation = np.load(os.path.join(os.path.join(self.annotation_root, trial_name + '.npy')))
                 current_seg = segmentation[0]
                 start = 0
                 for frame_id, ss in enumerate(segmentation):
@@ -350,12 +356,11 @@ class Annotator(QWidget):
                 seg["cls"] = self.segment_labels[current_seg]
                 self.current_segmentation.append(seg)
             elif self.annotation_file_format == 'json':
-                with open(os.path.join(trial_name + '.json'), 'r') as fp:
+                with open(os.path.join(self.annotation_root, trial_name + '.json'), 'r') as fp:
                     self.current_segmentation = json.load(fp)
 
         self.update_segmentation_img()
 
-        trial_name = os.path.basename(self.trials[self.trial_num])
         self.current_episode_lbl.setText('%s (%d/%d)' % (trial_name, self.trial_num+1, len(self.trials)))
 
     def update_segmentation_img(self):
@@ -407,10 +412,10 @@ class Annotator(QWidget):
         prev = -1
         while True:
             self.trial_num = self.get_next_trial()
-            trial_name = self.trials[self.trial_num]
+            trial_name = os.path.basename(self.trials[self.trial_num])
             if self.input_format == 'video':
-                trial_name = trial_name[:-4]
-            if not os.path.exists(os.path.join(trial_name + '.npy')):
+                trial_name = trial_name.split('.')[0]
+            if not os.path.exists(os.path.join(self.annotation_root, trial_name + '.' + self.annotation_file_format)):
                 break
             if self.trial_num == prev:
                 break
@@ -434,7 +439,8 @@ def get_rgb(hex_str):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-r', '--root')
+    parser.add_argument('-r', '--video_root')
+    parser.add_argument('-n', '--annotation_root')
     parser.add_argument('-t', '--trial_num')
     parser.add_argument('-a', '--annotation_file_format', default='npy', choices=['npy', 'json'])
     parser.add_argument('-i', '--input_format', default='video', choices=['video', 'image_folder'])
