@@ -34,10 +34,15 @@ class Annotator(QWidget):
             exit(0)
         self.trial_num = args.trial_num if args.trial_num is not None else 0
         with open('config.json', 'r') as fp:
-            self.segment_labels = json.load(fp)["segments"]
+            data = json.load(fp)
+            self.segment_labels = data["segments"]
+            ## https://observablehq.com/@d3/color-schemes  (Categorical Set 1)
+            self.colors = data["colors"]
 
-        ## https://observablehq.com/@d3/color-schemes  (Categorical Set 1)
-        self.colors = ["#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00","#ffff33","#a65628","#f781bf","#999999"]
+        if len(self.segment_labels) > len(self.colors):
+            print("Not enough colors for number of segments (see config.json)")
+            exit(0)
+
         self.imgs = []
 
         self.current_img_id = 0

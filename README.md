@@ -47,6 +47,15 @@ q           quit
 s           save
 ```
 
+## How to use
+
+1. `<spacebar>` to pause the video where you want to end the current segment
+2. `h` or `l` to refine the position frame-by-frame
+3. `j` or `k` to select the label
+4. `e` to end the segment (i.e. label all frames from the end of the previous segment (or start) until the current position with the selected label)
+5. move the cursor over a segment and press `x` to delete that segment
+6. move the cursor over a segment and press `a` to change the label of that segment to the currently selected label
+
 ## Similar tools
 The following tools can also be used to label video segments, but have other functionalities in addition:
 
